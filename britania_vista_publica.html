@@ -589,34 +589,67 @@ function setDay(d) { activeDay = d; renderCalendario(); }
 // ═══════════════════════════════════════════════════════════
 // POSICIONES
 // ═══════════════════════════════════════════════════════════
+function renderStandingsTable(grp, sorted) {
+  let html = `<div style="margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:600;color:var(--gray);letter-spacing:.06em;margin-bottom:8px;">GRUPO ${grp}</div>
+    <table class="standings-table"><thead><tr>
+      <th>#</th><th>Pareja</th><th>J</th><th>G</th><th>P</th><th>+/-</th><th>Pts</th>
+    </tr></thead><tbody>`;
+  sorted.forEach((p,i) => {
+    const qualify = i < 2;
+    const mine    = selectedPair && p.name === selectedPair.name;
+    const pos     = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'pos-n';
+    const gd = (p.gf||0)-(p.ga||0);
+    const gdStr = gd>0?'+'+gd:String(gd);
+    html += `<tr class="${mine?'mine-row':qualify?'qualify':''}">
+      <td><span class="pos-badge ${pos}">${i+1}</span></td>
+      <td><strong>${p.name}</strong></td>
+      <td>${p.played}</td><td>${p.won}</td><td>${p.lost}</td>
+      <td style="font-weight:600;color:${gd>0?'var(--success)':gd<0?'#C0392B':'var(--gray)'}">${gdStr}</td>
+      <td><strong>${p.pts}</strong></td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  return html;
+}
+
 function renderPosiciones() {
   const catsToShow = selectedPair ? [selectedPair.cat] : TOURNAMENT.cats;
   let html = `<div class="info-banner">🎾 Las 2 primeras de cada grupo avanzan a eliminación directa</div>`;
 
   catsToShow.forEach(cat => {
-    const groups = TOURNAMENT.standings[cat];
-    if(!groups) return;
+    const standingsCat = TOURNAMENT.standings[cat];
+    if(!standingsCat) return;
     html += `<div class="card"><div class="section-title">${cat}</div>`;
-    Object.entries(groups).forEach(([grp, rows]) => {
-      const sorted = [...rows].sort((a,b)=>b.pts-a.pts||(b.won-b.lost)-(a.won-a.lost));
-      html += `<div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:600;color:var(--gray);letter-spacing:.06em;margin-bottom:8px;">GRUPO ${grp}</div>
-        <table class="standings-table"><thead><tr>
-          <th>#</th><th>Pareja</th><th>J</th><th>G</th><th>P</th><th>Pts</th>
-        </tr></thead><tbody>`;
-      sorted.forEach((p,i) => {
-        const qualify = i < 2;
-        const mine    = selectedPair && p.name === selectedPair.name;
-        const pos     = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'pos-n';
-        html += `<tr class="${mine?'mine-row':qualify?'qualify':''}">
-          <td><span class="pos-badge ${pos}">${i+1}</span></td>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.played}</td><td>${p.won}</td><td>${p.lost}</td>
-          <td><strong>${p.pts}</strong></td>
-        </tr>`;
+
+    // standings can be {groupLetter: [array]} or {pairName: {pts,won...}}
+    // Detect format and normalize
+    const firstVal = Object.values(standingsCat)[0];
+    const isFlat = firstVal && !Array.isArray(firstVal) && typeof firstVal === 'object';
+
+    if(isFlat) {
+      // Flat format from Firebase: {pairName: {pts, won, lost, played, gf, ga}}
+      // Group pairs by their group index using schedule
+      const groupMap = {};
+      Object.entries(standingsCat).forEach(([name, stats]) => {
+        // Find group from schedule
+        const m = TOURNAMENT.schedule.find(x => x.a===name || x.b===name);
+        const gi = m?.groupIdx !== undefined ? String.fromCharCode(65+m.groupIdx) : 'A';
+        if(!groupMap[gi]) groupMap[gi] = [];
+        groupMap[gi].push({ name, ...stats });
       });
-      html += `</tbody></table></div>`;
-    });
+      Object.entries(groupMap).forEach(([grp, rows]) => {
+        const sorted = [...rows].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);
+        html += renderStandingsTable(grp, sorted);
+      });
+    } else {
+      // Array format: {groupLetter: [array of pairs]}
+      Object.entries(standingsCat).forEach(([grp, rows]) => {
+        if(!Array.isArray(rows)) return;
+        const sorted = [...rows].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);
+        html += renderStandingsTable(grp, sorted);
+      });
+    }
     html += `</div>`;
   });
 
