@@ -630,19 +630,37 @@ function resolveElimTeams() {
   if(!state.elimMatches) return;
   CATS.forEach(cat => {
     if(!state.groups[cat] || !state.elimMatches[cat]) return;
-    const tops = state.groups[cat].map((g, gi) => {
+
+    // Get sorted standings per group using groupIdx from schedule
+    const groupMap = {}; // groupIdx -> sorted array of pairs
+    state.groups[cat].forEach((g, gi) => {
       const sorted = g.map(p => ({
-        name: p, ...(state.standings[cat]?.[p] || {pts:0,won:0,lost:0})
-      })).sort((a,b) => b.pts-a.pts || (b.won-b.lost)-(a.won-a.lost));
-      return { first: sorted[0]?.name, second: sorted[1]?.name };
+        name: p,
+        ...(state.standings[cat]?.[p] || {pts:0, won:0, lost:0, gf:0, ga:0})
+      })).sort((a,b) =>
+        b.pts - a.pts ||
+        (b.gf-b.ga) - (a.gf-a.ga) ||
+        b.gf - a.gf
+      );
+      groupMap[gi] = sorted;
     });
+
+    // Need at least 2 groups
+    if(!groupMap[0] || !groupMap[1]) return;
+
+    const first_A  = groupMap[0][0]?.name || '1° Grupo A';
+    const second_A = groupMap[0][1]?.name || '2° Grupo A';
+    const first_B  = groupMap[1][0]?.name || '1° Grupo B';
+    const second_B = groupMap[1][1]?.name || '2° Grupo B';
+
     const [semi1, semi2, final] = state.elimMatches[cat];
-    if(tops[0] && tops[1]) {
-      semi1.a = tops[0].first  || '1° Grupo A';
-      semi1.b = tops[1].second || '2° Grupo B';
-      semi2.a = tops[1].first  || '1° Grupo B';
-      semi2.b = tops[0].second || '2° Grupo A';
-    }
+
+    // Cross bracket: 1°A vs 2°B  |  1°B vs 2°A
+    semi1.a = first_A;
+    semi1.b = second_B;
+    semi2.a = first_B;
+    semi2.b = second_A;
+
     const r1 = state.results?.[String(semi1.id)];
     const r2 = state.results?.[String(semi2.id)];
     final.a = r1?.status==='confirmed' ? (r1.setsA>r1.setsB ? semi1.a : semi1.b) : 'Ganador Semi 1';
