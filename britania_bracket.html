@@ -565,54 +565,56 @@ const CAT_COURTS = {
 };
 
 function assignSlots(matches, days) {
-  // Split matches by court group
   const groupA = matches.filter(m => (CAT_COURTS[m.cat]||[1,2,3,4,5,6])[0] <= 3);
   const groupB = matches.filter(m => (CAT_COURTS[m.cat]||[4,5,6])[0] >= 4);
 
-  // Global ID counter — shared across both groups to avoid duplicates
   let globalId = 0;
 
-  function scheduleGroup(pending, courtNums) {
+  function scheduleGroup(matches, courtNums) {
     const result = [];
-    let dayIdx = 0, slotIdx = 0;
-    while(pending.length > 0 && dayIdx < days.length) {
-      const day   = days[dayIdx];
+
+    // Step 1: Split matches evenly across days FIRST
+    const half = Math.ceil(matches.length / days.length);
+    const dayBuckets = days.map((d, i) => ({
+      day: d,
+      matches: matches.slice(i * half, (i + 1) * half)
+    }));
+
+    // Step 2: Schedule each day's matches into time slots
+    dayBuckets.forEach(({day, matches: dayMatches}) => {
       const slots = DAY_SLOTS[day];
-      const time  = slots[slotIdx];
-      const busyPairs  = new Set();
-      const slotMatches = [];
-      const remaining  = [];
-      for(const m of pending) {
-        if(slotMatches.length < courtNums.length && !busyPairs.has(m.a) && !busyPairs.has(m.b)) {
-          slotMatches.push(m);
-          busyPairs.add(m.a);
-          busyPairs.add(m.b);
-        } else {
-          remaining.push(m);
+      let slotIdx = 0;
+      let pending = [...dayMatches];
+
+      while(pending.length > 0 && slotIdx < slots.length) {
+        const time = slots[slotIdx];
+        const busyPairs = new Set();
+        const slotMatches = [];
+        const remaining = [];
+
+        for(const m of pending) {
+          if(slotMatches.length < courtNums.length && !busyPairs.has(m.a) && !busyPairs.has(m.b)) {
+            slotMatches.push(m);
+            busyPairs.add(m.a);
+            busyPairs.add(m.b);
+          } else {
+            remaining.push(m);
+          }
         }
+
+        slotMatches.forEach((m, ci) => {
+          result.push({ ...m, day, time, court: courtNums[ci], id: String(globalId++) });
+        });
+
+        pending = remaining;
+        slotIdx++;
       }
-      slotMatches.forEach((m, ci) => {
-        result.push({ ...m, day, time, court: courtNums[ci], id: String(globalId++) });
-      });
-      pending = remaining;
-      slotIdx++;
-      if(slotIdx >= slots.length) { slotIdx = 0; dayIdx++; }
-    }
+    });
+
     return result;
   }
 
-  function balanceAcrossDays(matches, courtNums) {
-    // Interleave matches round-robin across days for perfect balance
-    // e.g. 12 matches, 2 days → alternates match 0,2,4...→Day1, 1,3,5...→Day2
-    const buckets = days.map(() => []);
-    matches.forEach((m, i) => buckets[i % days.length].push(m));
-    // Flatten: all of day1, then all of day2 (scheduleGroup handles day progression)
-    const balanced = [];
-    buckets.forEach(b => balanced.push(...b));
-    return scheduleGroup(balanced, courtNums);
-  }
-
-  return [...balanceAcrossDays([...groupA], [1,2,3]), ...balanceAcrossDays([...groupB], [4,5,6])];
+  return [...scheduleGroup([...groupA], [1,2,3]), ...scheduleGroup([...groupB], [4,5,6])];
 }
 
 function generateSchedule(groupMatches) {
