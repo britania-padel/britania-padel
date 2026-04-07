@@ -260,7 +260,8 @@
 
       <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-primary" onclick="generateTournament()">Generar torneo →</button>
-        <button class="btn btn-secondary" onclick="loadDemo()">Cargar demo (32 parejas)</button>
+        <button class="btn btn-gold btn-sm" onclick="importarInscripciones()">📥 Cargar inscripciones</button>
+        <button class="btn btn-secondary" onclick="loadDemo()">Cargar demo</button>
         <button class="btn btn-gold btn-sm" onclick="saveTournamentToFirebase()">☁ Guardar en Firebase</button>
         <button class="btn btn-secondary btn-sm" onclick="loadTournamentFromFirebase()">↓ Cargar desde Firebase</button>
         <button class="btn btn-secondary btn-sm" onclick="clearAll()" style="margin-left:auto;">Limpiar todo</button>
@@ -1318,6 +1319,42 @@ async function simulateAllResults() {
     showSyncStatus('🎾 Grupos simulados — captura las semis y final');
   } catch(e) {
     showSyncStatus('⚠ Error al guardar: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORTAR INSCRIPCIONES
+// ═══════════════════════════════════════════════════════
+async function importarInscripciones() {
+  try {
+    showSyncStatus('Cargando inscripciones...');
+    const doc = await db.collection('inscripciones').doc('parejas').get();
+    if(!doc.exists || !doc.data().lista?.length) {
+      showSyncStatus('⚠ No hay inscripciones registradas aún');
+      return;
+    }
+    const lista = doc.data().lista;
+
+    // Clear current cats and load from inscripciones
+    CATS.forEach(cat => { state.cats[cat] = []; });
+
+    lista.forEach(p => {
+      const cat = p.cat;
+      if(!state.cats[cat]) return;
+      // Use "P1/P2" format for pair name
+      const name = p.p1 + '/' + p.p2;
+      if(!state.cats[cat].includes(name)) state.cats[cat].push(name);
+    });
+
+    // Refresh UI
+    CATS.forEach(cat => renderTags(cat));
+    showSyncStatus(`✓ ${lista.length} inscripciones cargadas`);
+
+    // Show summary
+    const summary = CATS.map(cat => `${cat}: ${state.cats[cat].length}`).join(' · ');
+    showSyncStatus(`✓ Inscripciones cargadas — ${summary}`);
+  } catch(e) {
+    showSyncStatus('⚠ Error: ' + e.message);
   }
 }
 
