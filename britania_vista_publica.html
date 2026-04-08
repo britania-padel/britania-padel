@@ -716,12 +716,10 @@ function resolveElimTeamsPublic() {
     if(tops.length < 2) return;
     const [semi1, semi2, final] = elimCat;
 
-    // Only update if still showing placeholders
-    if(semi1.a.includes('°') || semi1.a.includes('Grupo')) {
+    // Always recalculate from real standings
+    if(tops[0] && tops[1]) {
       semi1.a = tops[0].first  || '1° Grupo A';
       semi1.b = tops[1].second || '2° Grupo B';
-    }
-    if(semi2.a.includes('°') || semi2.a.includes('Grupo')) {
       semi2.a = tops[1].first  || '1° Grupo B';
       semi2.b = tops[0].second || '2° Grupo A';
     }
@@ -729,10 +727,8 @@ function resolveElimTeamsPublic() {
     // Update final with semi winners
     const r1 = publicResults[String(semi1.id)];
     const r2 = publicResults[String(semi2.id)];
-    if(final.a === 'Ganador Semi 1' || final.a.includes('Ganador')) {
-      final.a = r1?.status==='confirmed' ? (r1.setsA>r1.setsB ? semi1.a : semi1.b) : 'Ganador Semi 1';
-      final.b = r2?.status==='confirmed' ? (r2.setsA>r2.setsB ? semi2.a : semi2.b) : 'Ganador Semi 2';
-    }
+    final.a = r1?.status==='confirmed' ? (r1.setsA>r1.setsB ? semi1.a : semi1.b) : 'Ganador Semi 1';
+    final.b = r2?.status==='confirmed' ? (r2.setsA>r2.setsB ? semi2.a : semi2.b) : 'Ganador Semi 2';
   });
 }
 
