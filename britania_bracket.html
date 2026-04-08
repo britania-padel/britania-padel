@@ -755,6 +755,10 @@ function renderSchedule() {
   const byDay = {};
   DAYS.forEach(d => byDay[d]=[]);
   state.schedule.forEach(m => { if(byDay[m.day]) byDay[m.day].push(m); });
+  // Also include elim matches (semis and final) in calendar
+  Object.values(state.elimMatches||{}).flat().forEach(m => {
+    if(m.day && byDay[m.day]) byDay[m.day].push(m);
+  });
 
   let html = `<div class="card"><div class="section-title">Calendario de partidos</div>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
@@ -813,10 +817,7 @@ function compartirDiaWhatsApp(day) {
   DAYS.forEach(d => byDay[d]=[]);
   state.schedule.forEach(m => { if(byDay[m.day]) byDay[m.day].push(m); });
 
-  // Also include elim matches for that day
-  Object.values(state.elimMatches||{}).flat().forEach(m => {
-    if(m.day === day && byDay[day]) byDay[day].push(m);
-  });
+
 
   const matches = byDay[day] || [];
   if(!matches.length) { alert('No hay partidos programados para ' + day); return; }
