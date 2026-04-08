@@ -721,11 +721,23 @@ function resolveElimTeamsPublic() {
 
     const [semi1, semi2, final] = elimCat;
 
-    // Cross bracket: 1°A vs 2°B | 1°B vs 2°A
-    semi1.a = tops[0].first  || '1° Grupo A';
-    semi1.b = tops[1].second || '2° Grupo B';
-    semi2.a = tops[1].first  || '1° Grupo B';
-    semi2.b = tops[0].second || '2° Grupo A';
+    // Check if all group matches are done (every pair has played at least once)
+    const allPairsInCat = [...groupMap[groupKeys[0]], ...groupMap[groupKeys[1]]];
+    const groupsDone = allPairsInCat.every(p => (standingsCat[p]?.played || 0) > 0);
+
+    if(groupsDone) {
+      // Groups complete — show real classified names
+      semi1.a = tops[0].first  || '1° Grupo A';
+      semi1.b = tops[1].second || '2° Grupo B';
+      semi2.a = tops[1].first  || '1° Grupo B';
+      semi2.b = tops[0].second || '2° Grupo A';
+    } else {
+      // Groups still in progress — show placeholder positions
+      semi1.a = '1° Grupo A';
+      semi1.b = '2° Grupo B';
+      semi2.a = '1° Grupo B';
+      semi2.b = '2° Grupo A';
+    }
 
     // Update final with semi winners
     const r1 = publicResults[String(semi1.id)];
@@ -761,11 +773,12 @@ function renderBracket() {
 
     // SEMIS
     html += `<div class="bracket-round"><div class="round-title">Semifinal</div><div class="round-matches">`;
-    [[semi1,r1,w1],[semi2,r2,w2]].forEach(([s,r,w]) => {
+    [[semi1,r1,w1],[semi2,r2,w2]].forEach(([s,r,w], si) => {
       const mineA = selectedPair && s.a===selectedPair.name;
       const mineB = selectedPair && s.b===selectedPair.name;
       const scoreStr = r?.status==='confirmed' ? r.sets.map(({gA,gB})=>gA+'-'+gB).join(' ') : '';
-      html += `<div class="elim-match ${(mineA||mineB)?'mine-match':''}">
+      html += `<div class="elim-match ${(mineA||mineB)?'mine-match':''}" style="margin-bottom:${si===0?'12px':'0'};">
+        <div style="font-size:9px;font-weight:600;color:var(--gray);letter-spacing:.06em;padding:4px 9px;background:var(--light);border-bottom:1px solid #E8E0CC;">SEMI ${si+1}</div>
         <div class="elim-team ${w===s.a?'winner':''} ${mineA?'mine':''}">${s.a}
           <span style="font-size:10px;margin-left:4px;">${w===s.a?scoreStr:''}</span></div>
         <div class="elim-team ${w===s.b?'winner':''} ${mineB?'mine':''}">${s.b}
