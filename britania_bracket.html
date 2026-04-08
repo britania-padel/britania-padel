@@ -1064,6 +1064,10 @@ function renderResults() {
           <span class="winner-crown">🎾</span>
           <span class="winner-name">${winnerName}</span>
           <span style="margin-left:8px;" class="set-score-display">${scoreDisplay(r.sets, m.a, m.b)}</span>
+          <button class="btn btn-sm" onclick="corregirResult('${m.id}')"
+            style="margin-left:auto;background:none;border:1px solid rgba(192,57,43,.3);color:#C0392B;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;">
+            ✏ Corregir
+          </button>
         </div>`;
       } else if(r.status === 'proposed') {
         const winnerName = r.setsA > r.setsB ? m.a : m.b;
@@ -1112,6 +1116,10 @@ function renderResults() {
           <span class="winner-crown">🎾</span>
           <span class="winner-name">${winnerName}</span>
           <span style="margin-left:8px;" class="set-score-display">${scoreDisplay(r.sets, m.a, m.b)}</span>
+          <button class="btn btn-sm" onclick="corregirResult('${m.id}')"
+            style="margin-left:auto;background:none;border:1px solid rgba(192,57,43,.3);color:#C0392B;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;">
+            ✏ Corregir
+          </button>
         </div>`;
       } else if(r.status === 'proposed') {
         const winnerName = r.setsA > r.setsB ? m.a : m.b;
@@ -1235,6 +1243,31 @@ function rejectResult(id) {
   saveResultToFirebase(id);
   renderResults();
   showToastResult('Resultado rechazado — puede volver a proponerse');
+}
+
+function corregirResult(id) {
+  if(!confirm('¿Corregir este resultado? Quedará pendiente para capturar de nuevo.')) return;
+  state.results[String(id)] = { sets:null, setsA:null, setsB:null, status:'pending', proposedBy:null };
+  // Recalculate standings from scratch
+  CATS.forEach(cat => {
+    const pairs = state.cats[cat] || [];
+    if(!pairs.length) return;
+    state.standings[cat] = {};
+    pairs.forEach(p => { state.standings[cat][p] = {pts:0, played:0, won:0, lost:0, gf:0, ga:0}; });
+  });
+  Object.entries(state.results).forEach(([rid, r]) => {
+    if(r && r.status === 'confirmed') {
+      const m = findMatch(rid);
+      if(m && m.phase === 'groups') updateStandings(m, r.setsA, r.setsB, r.sets);
+    }
+  });
+  resolveElimTeams();
+  saveResultToFirebase(id);
+  db.collection('torneo').doc('standings').set({ data: state.standings });
+  renderResults();
+  renderStandings();
+  renderElim();
+  showToastResult('↩ Resultado devuelto a pendiente');
 }
 
 function updateStandings(m, sA, sB, sets) {
