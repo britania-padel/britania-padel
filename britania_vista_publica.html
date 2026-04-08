@@ -262,6 +262,7 @@ function scheduleRender() {
   renderTimer = setTimeout(() => {
     TOURNAMENT.schedule  = buildSchedule();
     TOURNAMENT.standings = rawStandings;
+    resolveElimTeamsPublic();
     renderAll();
   }, 120);
 }
@@ -685,10 +686,61 @@ function renderPosiciones() {
 // ═══════════════════════════════════════════════════════════
 // BRACKET
 // ═══════════════════════════════════════════════════════════
+function resolveElimTeamsPublic() {
+  if(!TOURNAMENT.elimMatches || !TOURNAMENT.standings) return;
+  const CATS = ['Mixtos','2da','3ra','4ta'];
+  CATS.forEach(cat => {
+    const elimCat = TOURNAMENT.elimMatches[cat];
+    if(!elimCat || elimCat.length < 3) return;
+    const standingsCat = TOURNAMENT.standings[cat];
+    if(!standingsCat) return;
+
+    // Get sorted pairs per group from schedule
+    const groupMap = {};
+    TOURNAMENT.schedule.forEach(m => {
+      if(m.cat !== cat) return;
+      const gi = m.groupIdx !== undefined ? m.groupIdx : 0;
+      if(!groupMap[gi]) groupMap[gi] = new Set();
+      groupMap[gi].add(m.a);
+      groupMap[gi].add(m.b);
+    });
+
+    const tops = Object.entries(groupMap).map(([gi, pairsSet]) => {
+      const sorted = [...pairsSet].map(p => ({
+        name: p,
+        ...(standingsCat[p] || {pts:0, won:0, lost:0, gf:0, ga:0})
+      })).sort((a,b) => b.pts-a.pts || (b.gf-b.ga)-(a.gf-a.ga) || b.gf-a.gf);
+      return { first: sorted[0]?.name, second: sorted[1]?.name };
+    });
+
+    if(tops.length < 2) return;
+    const [semi1, semi2, final] = elimCat;
+
+    // Only update if still showing placeholders
+    if(semi1.a.includes('°') || semi1.a.includes('Grupo')) {
+      semi1.a = tops[0].first  || '1° Grupo A';
+      semi1.b = tops[1].second || '2° Grupo B';
+    }
+    if(semi2.a.includes('°') || semi2.a.includes('Grupo')) {
+      semi2.a = tops[1].first  || '1° Grupo B';
+      semi2.b = tops[0].second || '2° Grupo A';
+    }
+
+    // Update final with semi winners
+    const r1 = publicResults[String(semi1.id)];
+    const r2 = publicResults[String(semi2.id)];
+    if(final.a === 'Ganador Semi 1' || final.a.includes('Ganador')) {
+      final.a = r1?.status==='confirmed' ? (r1.setsA>r1.setsB ? semi1.a : semi1.b) : 'Ganador Semi 1';
+      final.b = r2?.status==='confirmed' ? (r2.setsA>r2.setsB ? semi2.a : semi2.b) : 'Ganador Semi 2';
+    }
+  });
+}
+
 function renderBracket() {
   const catsToShow = selectedPair ? [selectedPair.cat] : TOURNAMENT.cats;
   let html = '';
 
+  resolveElimTeamsPublic();
   catsToShow.forEach(cat => {
     const elimCat = TOURNAMENT.elimMatches?.[cat];
     if(!elimCat || elimCat.length < 2) {
