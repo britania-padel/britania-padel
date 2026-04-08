@@ -818,8 +818,7 @@ function compartirDiaWhatsApp(day) {
   const byDay = {};
   DAYS.forEach(d => byDay[d]=[]);
   state.schedule.forEach(m => { if(byDay[m.day]) byDay[m.day].push(m); });
-
-
+  Object.values(state.elimMatches||{}).flat().forEach(m => { if(m.day && byDay[m.day]!==undefined) byDay[m.day].push(m); });
 
   const matches = byDay[day] || [];
   if(!matches.length) { alert('No hay partidos programados para ' + day); return; }
