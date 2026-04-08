@@ -695,34 +695,37 @@ function resolveElimTeamsPublic() {
     const standingsCat = TOURNAMENT.standings[cat];
     if(!standingsCat) return;
 
-    // Get sorted pairs per group from schedule
+    // Build group map using schedule groupIdx
     const groupMap = {};
     TOURNAMENT.schedule.forEach(m => {
       if(m.cat !== cat) return;
-      const gi = m.groupIdx !== undefined ? m.groupIdx : 0;
+      const gi = m.groupIdx !== undefined ? Number(m.groupIdx) : 0;
       if(!groupMap[gi]) groupMap[gi] = new Set();
       groupMap[gi].add(m.a);
       groupMap[gi].add(m.b);
     });
 
-    const tops = Object.entries(groupMap).map(([gi, pairsSet]) => {
-      const sorted = [...pairsSet].map(p => ({
+    const groupKeys = Object.keys(groupMap).map(Number).sort();
+    if(groupKeys.length < 2) return;
+
+    // Sort each group by standings
+    const tops = groupKeys.map(gi => {
+      const sorted = [...groupMap[gi]].map(p => ({
         name: p,
         ...(standingsCat[p] || {pts:0, won:0, lost:0, gf:0, ga:0})
       })).sort((a,b) => b.pts-a.pts || (b.gf-b.ga)-(a.gf-a.ga) || b.gf-a.gf);
       return { first: sorted[0]?.name, second: sorted[1]?.name };
     });
 
-    if(tops.length < 2) return;
+    if(!tops[0] || !tops[1]) return;
+
     const [semi1, semi2, final] = elimCat;
 
-    // Always recalculate from real standings
-    if(tops[0] && tops[1]) {
-      semi1.a = tops[0].first  || '1° Grupo A';
-      semi1.b = tops[1].second || '2° Grupo B';
-      semi2.a = tops[1].first  || '1° Grupo B';
-      semi2.b = tops[0].second || '2° Grupo A';
-    }
+    // Cross bracket: 1°A vs 2°B | 1°B vs 2°A
+    semi1.a = tops[0].first  || '1° Grupo A';
+    semi1.b = tops[1].second || '2° Grupo B';
+    semi2.a = tops[1].first  || '1° Grupo B';
+    semi2.b = tops[0].second || '2° Grupo A';
 
     // Update final with semi winners
     const r1 = publicResults[String(semi1.id)];
