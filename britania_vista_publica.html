@@ -286,6 +286,7 @@ db.collection('torneo').doc('elim').onSnapshot(snap => {
     }
   });
   renderBracket();
+  renderCalendario();
 });
 
 db.collection('torneo').doc('schedule').onSnapshot(snap => {
@@ -559,7 +560,7 @@ function matchItem(m, mine, played) {
     <div style="overflow:hidden;">
       <span class="match-court">C${m.court}</span>
       <div class="match-teams"><span class="${aClass}">${m.a}</span> <span style="color:var(--gray);font-weight:400;">vs</span> <span class="${bClass}">${m.b}</span></div>
-      <div class="match-meta">${m.cat} · ${m.phase==='elim'?(m.round||'Eliminación'):'Grupo '+(m.groupIdx!==undefined?String.fromCharCode(65+m.groupIdx):(m.group||'?'))} · ${m.day} ${m.time}</div>
+      <div class="match-meta">${m.cat} · ${m.phase==='elim'?(m.round||'Eliminación'):'Grupo '+(m.groupIdx!==undefined?String.fromCharCode(65+m.groupIdx):(m.group||'?'))} · ${m.day} ${m.time}${m.court?' · C'+m.court:''}</div>
       ${extra}
     </div>
   </div>`;
@@ -571,6 +572,12 @@ function matchItem(m, mine, played) {
 function renderCalendario() {
   const byDay = {};
   DAYS.forEach(d => byDay[d] = TOURNAMENT.schedule.filter(m => m.day===d));
+  // Add elim matches (semis and final)
+  Object.values(TOURNAMENT.elimMatches||{}).flat().forEach(m => {
+    if(m.day && byDay[m.day]) byDay[m.day].push(m);
+  });
+  // Sort each day by time
+  DAYS.forEach(d => byDay[d].sort((a,b) => (a.time||'').localeCompare(b.time||'')));
 
   let html = `<div class="phase-legend">
     <span class="legend-item legend-groups">Jue–Vie: Grupos</span>
