@@ -446,12 +446,16 @@ function showSyncStatus(msg) {
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
-const CATS = ['Mixtos','2da','3ra','4ta'];
-const DAYS = ['Jueves','Viernes','Sábado','Domingo'];
-const DAY_SLOTS = { 'Jueves':['10:00','11:00','12:00','16:00','17:00','18:00','19:00','20:00'],
-                    'Viernes':['10:00','11:00','12:00','16:00','17:00','18:00','19:00','20:00'],
-                    'Sábado':['09:00','10:00','11:00','12:00','16:00','17:00','18:00','19:00','20:00'],
-                    'Domingo':['09:00','10:00','11:00','12:00','13:00','16:00','17:00','18:00'] };
+const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'];
+const DAYS = ['Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DAY_SLOTS = {
+  'Martes':    ['17:00','18:30','20:00','21:30'],
+  'Miércoles': ['17:00','18:30','20:00','21:30'],
+  'Jueves':    ['17:00','18:30','20:00','21:30'],
+  'Viernes':   ['17:00','18:30','20:00','21:30'],
+  'Sábado':    ['09:00','10:30','12:00','13:30','15:00','16:30'],
+  'Domingo':   ['09:00','10:30','12:00','13:30'],
+};
 
 let state = { generated: false, cats: {}, schedule: [], elimBrackets: {} };
 
@@ -558,10 +562,11 @@ function groupMatches(group) {
 
 // Cancha ranges por categoría
 const CAT_COURTS = {
-  '2da':    [1,2,3],
-  '3ra':    [1,2,3],
-  '4ta':    [4,5,6],
-  'Mixtos': [4,5,6],
+  '4ta Masc': [1,2,3],
+  '3ra Masc': [1,2,3],
+  '4ta Fem':  [1,2,3],
+  '3ra Fem':  [4,5,6],
+  'Mixtos':   [4,5,6],
 };
 
 function assignSlots(matches, days) {
@@ -699,10 +704,16 @@ function generateTournament() {
       state.groupMatches[cat][gi].forEach(m => allGroupMatches.push({...m, cat, groupIdx:gi, phase:'groups'}));
     });
     // Build elim matches with stable IDs based on cat
+    const catIdx = CATS.indexOf(cat);
+    const isLowCourt = catIdx < 3; // 4ta Masc, 3ra Masc, 4ta Fem → courts 1-3
+    const semiTimes = ['09:00','10:30','12:00','13:30','15:00'];
+    const finalTimes = ['09:00','10:30','12:00','13:30','15:00'];
+    const semiCourt1 = isLowCourt ? (catIdx+1) : (catIdx-2);
+    const semiCourt2 = isLowCourt ? (catIdx+1) : (catIdx-2);
     state.elimMatches[cat] = [
-      { id:`${cat}-s1`, a:'1° Grupo A', b:'2° Grupo B', cat, phase:'elim', round:'Semifinal', idx:0, day:'Sábado',  time:'10:00', court: cat==='2da'||cat==='3ra'?1:4 },
-      { id:`${cat}-s2`, a:'1° Grupo B', b:'2° Grupo A', cat, phase:'elim', round:'Semifinal', idx:1, day:'Sábado',  time:'11:00', court: cat==='2da'||cat==='3ra'?2:5 },
-      { id:`${cat}-f1`, a:'Ganador Semi 1', b:'Ganador Semi 2', cat, phase:'elim', round:'Final',     idx:2, day:'Domingo', time:'12:00', court: cat==='2da'||cat==='3ra'?1:4 },
+      { id:`${cat}-s1`, a:'1° Grupo A', b:'2° Grupo B', cat, phase:'elim', round:'Semifinal', idx:0, day:'Sábado',  time:semiTimes[catIdx*2]||'09:00',   court: isLowCourt?1:4 },
+      { id:`${cat}-s2`, a:'1° Grupo B', b:'2° Grupo A', cat, phase:'elim', round:'Semifinal', idx:1, day:'Sábado',  time:semiTimes[catIdx*2+1]||'10:30', court: isLowCourt?2:5 },
+      { id:`${cat}-f1`, a:'Ganador Semi 1', b:'Ganador Semi 2', cat, phase:'elim', round:'Final', idx:2, day:'Domingo', time:finalTimes[catIdx]||'09:00', court: isLowCourt?1:4 },
     ];
   });
 
@@ -745,11 +756,11 @@ function renderGroups() {
 // ═══════════════════════════════════════════════════════
 // RENDER SCHEDULE
 // ═══════════════════════════════════════════════════════
-let activeDay = 'Jueves';
-const DAY_PHASE = { 'Jueves':'groups','Viernes':'groups','Sábado':'elim','Domingo':'elim' };
-const DAY_PHASE_LABEL = { 'Jueves':'Fase de Grupos','Viernes':'Fase de Grupos','Sábado':'Eliminación Directa','Domingo':'Eliminación Directa' };
-const DAY_PHASE_COLOR = { 'Jueves':'#EEF4FF','Viernes':'#EEF4FF','Sábado':' var(--gold-pale)','Domingo':'var(--gold-pale)' };
-const DAY_PHASE_TEXT  = { 'Jueves':'#2A5FC9','Viernes':'#2A5FC9','Sábado':'#7A5500','Domingo':'#7A5500' };
+let activeDay = 'Martes';
+const DAY_PHASE = { 'Martes':'groups','Miércoles':'groups','Jueves':'groups','Viernes':'groups','Sábado':'elim','Domingo':'elim' };
+const DAY_PHASE_LABEL = { 'Martes':'Fase de Grupos','Miércoles':'Fase de Grupos','Jueves':'Fase de Grupos','Viernes':'Fase de Grupos','Sábado':'Semifinales','Domingo':'Finales' };
+const DAY_PHASE_COLOR = { 'Martes':'#EEF4FF','Miércoles':'#EEF4FF','Jueves':'#EEF4FF','Viernes':'#EEF4FF','Sábado':'var(--gold-pale)','Domingo':'var(--gold-pale)' };
+const DAY_PHASE_TEXT  = { 'Martes':'#2A5FC9','Miércoles':'#2A5FC9','Jueves':'#2A5FC9','Viernes':'#2A5FC9','Sábado':'#7A5500','Domingo':'#7A5500' };
 
 function renderSchedule() {
   const byDay = {};

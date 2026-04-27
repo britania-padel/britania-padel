@@ -388,10 +388,11 @@
 
     <div class="section-title">Categoría</div>
     <div class="cat-grid">
+      <button class="cat-btn" onclick="selectCat(this,'4ta Masc')">4ta Masculina</button>
+      <button class="cat-btn" onclick="selectCat(this,'3ra Masc')">3ra Masculina</button>
+      <button class="cat-btn" onclick="selectCat(this,'4ta Fem')">4ta Femenina</button>
+      <button class="cat-btn" onclick="selectCat(this,'3ra Fem')">3ra Femenina</button>
       <button class="cat-btn" onclick="selectCat(this,'Mixtos')">Mixtos</button>
-      <button class="cat-btn" onclick="selectCat(this,'2da')">2da</button>
-      <button class="cat-btn" onclick="selectCat(this,'3ra')">3ra</button>
-      <button class="cat-btn" onclick="selectCat(this,'4ta')">4ta</button>
     </div>
     <div class="cat-error" id="err-cat">⚠ Selecciona una categoría</div>
 
@@ -535,12 +536,12 @@
 
   // ── Load test data ──
   const TEST_DATA = [
-    { id: 1, p1:'Carlos Mendoza', p1p:'2221234567', p2:'Javier Torres', p2p:'2229876543', cat:'Mixtos', ts:'Prueba' },
-    { id: 2, p1:'Roberto Luna',   p1p:'2223456789', p2:'Andrés Vega',   p2p:'2226543210', cat:'2da',    ts:'Prueba' },
-    { id: 3, p1:'Miguel Ríos',    p1p:'2225678901', p2:'Fernando Díaz', p2p:'2228765432', cat:'3ra',    ts:'Prueba' },
-    { id: 4, p1:'Pablo Serrano',  p1p:'2227890123', p2:'Héctor Mora',   p2p:'2224321098', cat:'4ta',    ts:'Prueba' },
-    { id: 5, p1:'David Pérez',    p1p:'2220123456', p2:'Luis García',   p2p:'2222109876', cat:'Mixtos', ts:'Prueba' },
-    { id: 6, p1:'Raúl Castillo',  p1p:'2226789012', p2:'Ernesto Ruiz',  p2p:'2223210987', cat:'2da',    ts:'Prueba' },
+    { id: 1, p1:'Carlos Mendoza', p1p:'2221234567', p2:'Javier Torres', p2p:'2229876543', cat:'4ta Masc', ts:'Prueba' },
+    { id: 2, p1:'Roberto Luna',   p1p:'2223456789', p2:'Andrés Vega',   p2p:'2226543210', cat:'3ra Masc', ts:'Prueba' },
+    { id: 3, p1:'Miguel Ríos',    p1p:'2225678901', p2:'Fernando Díaz', p2p:'2228765432', cat:'4ta Fem',  ts:'Prueba' },
+    { id: 4, p1:'Pablo Serrano',  p1p:'2227890123', p2:'Héctor Mora',   p2p:'2224321098', cat:'3ra Fem',  ts:'Prueba' },
+    { id: 5, p1:'David Pérez',    p1p:'2220123456', p2:'Luis García',   p2p:'2222109876', cat:'Mixtos',   ts:'Prueba' },
+    { id: 6, p1:'Raúl Castillo',  p1p:'2226789012', p2:'Ernesto Ruiz',  p2p:'2223210987', cat:'4ta Masc', ts:'Prueba' },
   ];
 
   async function loadTestData() {
