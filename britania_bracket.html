@@ -576,9 +576,9 @@ function assignSlots(matches, days) {
   function scheduleGroup(matches, courtNums) {
     const result = [];
 
-    // Split matches evenly across days
-    const perDay = Math.ceil(matches.length / days.length);
-    const matchesPerDay = days.map((d, i) => matches.slice(i * perDay, (i + 1) * perDay));
+    // Distribute matches evenly across days using round-robin
+    const matchesPerDay = days.map(() => []);
+    matches.forEach((m, i) => matchesPerDay[i % days.length].push(m));
 
     days.forEach((day, di) => {
       const slots = DAY_SLOTS[day];
@@ -622,12 +622,15 @@ function assignSlots(matches, days) {
   }
 
   // Schedule each category separately with its own courts
+  // Pass ALL matches of the category together so distribution is correct
   const result = [];
   CATS.forEach(cat => {
     const catMatches = matches.filter(m => m.cat === cat);
     if(!catMatches.length) return;
     const courts = CAT_COURTS[cat] || [1,2,3];
-    result.push(...scheduleGroup(catMatches, courts));
+    // Shuffle to avoid predictable ordering
+    const shuffled = [...catMatches].sort(() => Math.random() - 0.5);
+    result.push(...scheduleGroup(shuffled, courts));
   });
   return result;
 }
