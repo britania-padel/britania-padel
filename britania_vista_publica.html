@@ -459,7 +459,27 @@ function renderAll() {
 // PRÓXIMOS PARTIDOS
 // ═══════════════════════════════════════════════════════════
 function renderProximos() {
-  let matches = TOURNAMENT.schedule.filter(m => !m.result);
+  // Resolve elim team names before filtering
+  resolveElimTeamsPublic();
+
+  // Include elim matches (semis and final) that are pending
+  const elimPending = Object.values(TOURNAMENT.elimMatches||{}).flat().filter(m => {
+    const r = publicResults[String(m.id)];
+    return !r || r.status !== 'confirmed';
+  });
+
+  let matches = [
+    ...TOURNAMENT.schedule.filter(m => {
+      const r = publicResults[String(m.id)];
+      return !r || r.status !== 'confirmed';
+    }),
+    ...elimPending
+  ];
+
+  // Sort by day then time
+  const dayOrder = ['Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  matches.sort((a,b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day) || (a.time||'').localeCompare(b.time||''));
+
   if(selectedPair) matches = matches.filter(m => m.a===selectedPair.name || m.b===selectedPair.name);
 
   let html = '';
@@ -493,12 +513,25 @@ function renderProximos() {
     html += `</div>`;
   }
 
-  // Recent results
-  let played = TOURNAMENT.schedule.filter(m => m.result);
-  if(selectedPair) played = played.filter(m => m.a===selectedPair.name || m.b===selectedPair.name);
-  if(played.length) {
+  // Recent results — from publicResults (confirmed)
+  const confirmedIds = Object.entries(publicResults)
+    .filter(([,r]) => r?.status==='confirmed')
+    .map(([id]) => id);
+
+  let playedMatches = [
+    ...TOURNAMENT.schedule.filter(m => confirmedIds.includes(String(m.id))),
+    ...Object.values(TOURNAMENT.elimMatches||{}).flat().filter(m => confirmedIds.includes(String(m.id)))
+  ].map(m => {
+    const r = publicResults[String(m.id)];
+    const winner = r.setsA > r.setsB ? m.a : m.b;
+    const scoreStr = r.sets?.map(({gA,gB})=>gA+'-'+gB).join('  ') || '';
+    return {...m, result: { winner, sets: r.sets, scoreStr }};
+  });
+
+  if(selectedPair) playedMatches = playedMatches.filter(m => m.a===selectedPair.name || m.b===selectedPair.name);
+  if(playedMatches.length) {
     html += `<div class="card"><div class="section-title">Últimos resultados</div>`;
-    played.slice(-4).reverse().forEach(m => {
+    playedMatches.slice(-4).reverse().forEach(m => {
       const mine = selectedPair && (m.a===selectedPair.name || m.b===selectedPair.name);
       html += matchItem(m, mine, true);
     });
