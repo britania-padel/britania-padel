@@ -203,8 +203,8 @@
 // ═══════════════════════════════════════════════════════════
 const TOURNAMENT = {
   name: 'Torneo Britania 2026 — Edición 1',
-  cats: ['Mixtos','2da','3ra','4ta'],
-  pairs: { 'Mixtos':[], '2da':[], '3ra':[], '4ta':[] },
+  cats: ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'],
+  pairs: { '4ta Masc':[], '3ra Masc':[], '4ta Fem':[], '3ra Fem':[], 'Mixtos':[] },
   schedule: [],
   standings: {},
   elimMatches: {},
@@ -517,8 +517,16 @@ function matchItem(m, mine, played) {
   const pubResult = publicResults[String(m.id)];
   const domId = String(m.id).replace(/[^a-zA-Z0-9_]/g, '_');
 
+  // In calendar view, show result if confirmed
+  const confirmedResult = publicResults[String(m.id)];
+  const isConfirmed = confirmedResult?.status === 'confirmed';
+  const confirmedSets = isConfirmed ? confirmedResult.sets?.map(({gA,gB})=>gA+'-'+gB).join('  ') : '';
+  const confirmedWinner = isConfirmed ? (confirmedResult.setsA > confirmedResult.setsB ? m.a : m.b) : '';
+
   let extra = '';
-  if(played && scoreStr) {
+  if(isConfirmed) {
+    extra = `<div class="match-score">🎾 ${confirmedWinner} · ${confirmedSets}</div>`;
+  } else if(played && scoreStr) {
     extra = `<div class="match-score">🎾 ${winner} · ${scoreStr}</div>`;
   } else if(mine && selectedPair && !played) {
     if(pubResult?.status === 'proposed') {
@@ -688,7 +696,7 @@ function renderPosiciones() {
 // ═══════════════════════════════════════════════════════════
 function resolveElimTeamsPublic() {
   if(!TOURNAMENT.elimMatches || !TOURNAMENT.standings) return;
-  const CATS = ['Mixtos','2da','3ra','4ta'];
+  const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'];
   CATS.forEach(cat => {
     const elimCat = TOURNAMENT.elimMatches[cat];
     if(!elimCat || elimCat.length < 3) return;
