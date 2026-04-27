@@ -571,22 +571,18 @@ const CAT_COURTS = {
 };
 
 function assignSlots(matches, days) {
-  const groupA = matches.filter(m => (CAT_COURTS[m.cat]||[1,2,3,4,5,6])[0] <= 3);
-  const groupB = matches.filter(m => (CAT_COURTS[m.cat]||[4,5,6])[0] >= 4);
-
   let globalId = 0;
 
   function scheduleGroup(matches, courtNums) {
     const result = [];
 
-    // Step 1: Split matches evenly across days FIRST
-    const half = Math.ceil(matches.length / days.length);
+    // Split matches evenly across days
+    const perDay = Math.ceil(matches.length / days.length);
     const dayBuckets = days.map((d, i) => ({
       day: d,
-      matches: matches.slice(i * half, (i + 1) * half)
+      matches: matches.slice(i * perDay, (i + 1) * perDay)
     }));
 
-    // Step 2: Schedule each day's matches into time slots
     dayBuckets.forEach(({day, matches: dayMatches}) => {
       const slots = DAY_SLOTS[day];
       let slotIdx = 0;
@@ -620,7 +616,15 @@ function assignSlots(matches, days) {
     return result;
   }
 
-  return [...scheduleGroup([...groupA], [1,2,3]), ...scheduleGroup([...groupB], [4,5,6])];
+  // Schedule each category separately with its own courts
+  const result = [];
+  CATS.forEach(cat => {
+    const catMatches = matches.filter(m => m.cat === cat);
+    if(!catMatches.length) return;
+    const courts = CAT_COURTS[cat] || [1,2,3];
+    result.push(...scheduleGroup(catMatches, courts));
+  });
+  return result;
 }
 
 function generateSchedule(groupMatches) {
