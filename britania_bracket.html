@@ -655,9 +655,9 @@ function assignSlots(matches, days) {
         slotIdx++;
       }
 
-      // Force-place any remaining matches that couldn't be scheduled
-      // (phone conflict is a preference, not a hard rule)
+      // Force-place any remaining matches — ignore phone/rest restrictions
       if(pending.length > 0) {
+        // Pass 1: respect rest but ignore phone conflicts
         const slots = DAY_SLOTS[day];
         let slotIdx2 = 0;
         while(pending.length > 0 && slotIdx2 < slots.length) {
@@ -684,6 +684,30 @@ function assignSlots(matches, days) {
           });
           pending = remaining2;
           slotIdx2++;
+        }
+        // Pass 2: ignore ALL restrictions — just place remaining matches
+        if(pending.length > 0) {
+          let slotIdx3 = 0;
+          while(pending.length > 0 && slotIdx3 < slots.length) {
+            const time = slots[slotIdx3];
+            const busyPairs3 = new Set();
+            const slotMatches3 = [];
+            const remaining3 = [];
+            for(const m of pending) {
+              if(slotMatches3.length < courtNums.length && !busyPairs3.has(m.a) && !busyPairs3.has(m.b)) {
+                slotMatches3.push(m);
+                busyPairs3.add(m.a);
+                busyPairs3.add(m.b);
+              } else {
+                remaining3.push(m);
+              }
+            }
+            slotMatches3.forEach((m, ci) => {
+              result.push({ ...m, day, time, court: courtNums[ci], id: String(globalId++) });
+            });
+            pending = remaining3;
+            slotIdx3++;
+          }
         }
       }
     });
