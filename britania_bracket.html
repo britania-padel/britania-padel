@@ -530,7 +530,7 @@ function renderTags(cat) {
 // DEMO DATA
 // ═══════════════════════════════════════════════════════
 function loadDemo() {
-  state.cats = {
+  const demoPairs = {
     '4ta Masc': ['Torres/Ruiz','García/López','Morales/Cruz','Jiménez/Vega','Reyes/Soto','Mendoza/Ríos','Castillo/Peña','Vargas/Ortiz'],
     '3ra Masc': ['Luna/Méndez','Flores/Ríos','Castillo/Díaz','Herrera/Núñez','Vargas/Ramos','Soto/Aguilar','Romero/Fuentes','Guzmán/León'],
     '4ta Fem':  ['Pérez/García','Ramírez/Torres','Sandoval/Molina','Espinoza/Cabrera','Miranda/Ávila','Salinas/Ponce','Rojas/Muñoz','Carrillo/Figueroa'],
@@ -538,7 +538,22 @@ function loadDemo() {
     'Mixtos C': ['Mendoza/Torres','Luna/Vega','Ríos/Díaz','Serrano/Mora','Pérez/García','Castillo/Ruiz','Herrera/Núñez','Jiménez/Cruz'],
     'Mixtos D': ['Guzmán/Ponce','Miranda/Reyes','Fuentes/Ibarra','Acosta/Molina','Cabrera/León','Delgado/Cruz','Espinoza/Vargas','Romero/Aguilar'],
   };
+  // Only fill categories that don't have enough pairs — respects imported inscriptions
+  CATS.forEach(cat => {
+    if(!state.cats[cat]) state.cats[cat] = [];
+    const existing = state.cats[cat];
+    const demoList = demoPairs[cat] || [];
+    let added = 0;
+    for(const p of demoList) {
+      if(existing.length >= 8) break;
+      if(!existing.includes(p)) {
+        existing.push(p);
+        added++;
+      }
+    }
+  });
   CATS.forEach(cat => renderTags(cat));
+  showSyncStatus('✓ Demo cargado — inscripciones reales conservadas');
 }
 
 // ═══════════════════════════════════════════════════════
