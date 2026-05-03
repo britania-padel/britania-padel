@@ -709,6 +709,14 @@ function assignSlots(matches, days) {
             slotIdx3++;
           }
         }
+        // Pass 3: absolute fallback — place ONE by ONE ignoring everything
+        if(pending.length > 0) {
+          const time = slots[0] || '17:00';
+          pending.forEach((m, ci) => {
+            result.push({ ...m, day, time, court: courtNums[ci % courtNums.length], id: String(globalId++) });
+          });
+          pending = [];
+        }
       }
     });
 
