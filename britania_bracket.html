@@ -446,7 +446,7 @@ function showSyncStatus(msg) {
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
-const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'];
+const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos C','Mixtos D'];
 const DAYS = ['Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const DAY_SLOTS = {
   'Martes':    ['17:00','18:30','20:00','21:30'],
@@ -457,7 +457,7 @@ const DAY_SLOTS = {
   'Domingo':   ['09:00','10:30','12:00','13:30'],
 };
 
-let state = { generated: false, pairInfo: {}, cats: {}, schedule: [], elimBrackets: {} };
+let state = { generated: false, pairInfo: {}, phoneMap: {}, cats: { '4ta Masc':[], '3ra Masc':[], '4ta Fem':[], '3ra Fem':[], 'Mixtos C':[], 'Mixtos D':[] }, schedule: [], elimBrackets: {} };
 
 // ═══════════════════════════════════════════════════════
 // TAB NAVIGATION
@@ -535,7 +535,8 @@ function loadDemo() {
     '3ra Masc': ['Luna/Méndez','Flores/Ríos','Castillo/Díaz','Herrera/Núñez','Vargas/Ramos','Soto/Aguilar','Romero/Fuentes','Guzmán/León'],
     '4ta Fem':  ['Pérez/García','Ramírez/Torres','Sandoval/Molina','Espinoza/Cabrera','Miranda/Ávila','Salinas/Ponce','Rojas/Muñoz','Carrillo/Figueroa'],
     '3ra Fem':  ['Vega/Serrano','Mora/Delgado','Suárez/Guerrero','Reyes/Campos','Lara/Montes','Santos/Pineda','Contreras/Bermúdez','Ochoa/Paredes'],
-    'Mixtos':   ['Mendoza/Torres','Luna/Vega','Ríos/Díaz','Serrano/Mora','Pérez/García','Castillo/Ruiz','Herrera/Núñez','Jiménez/Cruz'],
+    'Mixtos C': ['Mendoza/Torres','Luna/Vega','Ríos/Díaz','Serrano/Mora','Pérez/García','Castillo/Ruiz','Herrera/Núñez','Jiménez/Cruz'],
+    'Mixtos D': ['Guzmán/Ponce','Miranda/Reyes','Fuentes/Ibarra','Acosta/Molina','Cabrera/León','Delgado/Cruz','Espinoza/Vargas','Romero/Aguilar'],
   };
   CATS.forEach(cat => renderTags(cat));
 }
@@ -576,7 +577,8 @@ const CAT_COURTS = {
   '3ra Masc': [2,3],
   '4ta Fem':  [3,4],
   '3ra Fem':  [4,5],
-  'Mixtos':   [5,6],
+  'Mixtos C': [5,6],
+  'Mixtos D': [6,1],
 };
 
 function assignSlots(matches, days) {
@@ -595,6 +597,7 @@ function assignSlots(matches, days) {
       let pending = [...matchesPerDay[di]];
       // Track last slot index each pair played — must skip at least 1 slot between
       const pairLastSlot = {};
+      const playedPhonesToday = new Set(); // phones of players who already played today (cross-category)
 
       while(pending.length > 0 && slotIdx < slots.length) {
         const time = slots[slotIdx];
@@ -607,7 +610,12 @@ function assignSlots(matches, days) {
           const lastB = pairLastSlot[m.b] ?? -2;
           // Allow if pair hasn't played this day OR played 2+ slots ago
           const restOk = (slotIdx - lastA >= 2) && (slotIdx - lastB >= 2);
-          if(restOk && slotMatches.length < courtNums.length && !busyPairs.has(m.a) && !busyPairs.has(m.b)) {
+          // Also check phone conflicts for players in multiple categories
+          const infoA = state.pairInfo?.[m.a];
+          const infoB = state.pairInfo?.[m.b];
+          const phones = [infoA?.p1p, infoA?.p2p, infoB?.p1p, infoB?.p2p].filter(p => p && p !== '—');
+          const hasPhoneConflict = phones.some(p => playedPhonesToday.has(p));
+          if(restOk && !hasPhoneConflict && slotMatches.length < courtNums.length && !busyPairs.has(m.a) && !busyPairs.has(m.b)) {
             slotMatches.push(m);
             busyPairs.add(m.a);
             busyPairs.add(m.b);
@@ -620,6 +628,12 @@ function assignSlots(matches, days) {
           result.push({ ...m, day, time, court: courtNums[ci], id: String(globalId++) });
           pairLastSlot[m.a] = slotIdx;
           pairLastSlot[m.b] = slotIdx;
+          // Track phones that played today
+          const infoA2 = state.pairInfo?.[m.a];
+          const infoB2 = state.pairInfo?.[m.b];
+          [infoA2?.p1p, infoA2?.p2p, infoB2?.p1p, infoB2?.p2p].forEach(p => {
+            if(p && p !== '—') playedPhonesToday.add(p);
+          });
         });
 
         pending = remaining;
@@ -645,6 +659,17 @@ function assignSlots(matches, days) {
 }
 
 function generateSchedule(groupMatches) {
+  // Build phone map: phone -> list of cats the player is in
+  state.phoneMap = {};
+  if(state.pairInfo) {
+    Object.entries(state.pairInfo).forEach(([name, info]) => {
+      [info.p1p, info.p2p].forEach(phone => {
+        if(!phone || phone === '—') return;
+        if(!state.phoneMap[phone]) state.phoneMap[phone] = [];
+        if(!state.phoneMap[phone].includes(info.cat)) state.phoneMap[phone].push(info.cat);
+      });
+    });
+  }
   return assignSlots(groupMatches, ['Martes','Miércoles','Jueves','Viernes']);
 }
 
@@ -1522,7 +1547,7 @@ async function importarInscripciones() {
 // ═══════════════════════════════════════════════════════
 function clearAll() {
   if(!confirm('¿Limpiar todas las parejas y el torneo generado?')) return;
-  state = { generated:false, pairInfo:{}, cats:{}, schedule:[], elimBrackets:{} };
+  state = { generated:false, pairInfo:{}, phoneMap:{}, cats:{ '4ta Masc':[], '3ra Masc':[], '4ta Fem':[], '3ra Fem':[], 'Mixtos C':[], 'Mixtos D':[] }, schedule:[], elimBrackets:{} };
   CATS.forEach(cat => state.cats[cat]=[]);
   initCatPanels();
   showTab('setup');

@@ -203,8 +203,8 @@
 // ═══════════════════════════════════════════════════════════
 const TOURNAMENT = {
   name: 'Torneo Britania 2026 — Edición 1',
-  cats: ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'],
-  pairs: { '4ta Masc':[], '3ra Masc':[], '4ta Fem':[], '3ra Fem':[], 'Mixtos':[] },
+  cats: ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos C','Mixtos D'],
+  pairs: { '4ta Masc':[], '3ra Masc':[], '4ta Fem':[], '3ra Fem':[], 'Mixtos C':[], 'Mixtos D':[] },
   schedule: [],
   standings: {},
   elimMatches: {},
@@ -729,7 +729,7 @@ function renderPosiciones() {
 // ═══════════════════════════════════════════════════════════
 function resolveElimTeamsPublic() {
   if(!TOURNAMENT.elimMatches || !TOURNAMENT.standings) return;
-  const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos'];
+  const CATS = ['4ta Masc','3ra Masc','4ta Fem','3ra Fem','Mixtos C','Mixtos D'];
   CATS.forEach(cat => {
     const elimCat = TOURNAMENT.elimMatches[cat];
     if(!elimCat || elimCat.length < 3) return;
